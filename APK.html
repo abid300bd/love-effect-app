@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0,
+               maximum-scale=1.0,user-scalable=no">
+
+<title>Love Effect</title>
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
+}
+
+body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+canvas {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+    background: #000;
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="canvas"></canvas>
+
+<script>
+
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+let W, H;
+let DPR;
+
+function resize() {
+
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+
+    W = window.innerWidth;
+    H = window.innerHeight;
+
+    canvas.width = W * DPR;
+    canvas.height = H * DPR;
+
+    canvas.style.width = W + "px";
+    canvas.style.height = H + "px";
+
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+    createHeart();
+    createText();
+}
+
+window.addEventListener("resize", resize);
+
+
+// ======================================================
+// PARTICLE SETTINGS
+// ======================================================
+
+const COUNT = 1600;
+
+const particles = [];
+
+
+// ======================================================
+// RANDOM
+// ======================================================
+
+function random(min, max) {
+    return Math.random() * (max - min) + min;
+}
+
+function clamp(v, min, max) {
+    return Math.max(min, Math.min(max, v));
+}
+
+function easeOut(v) {
+    return 1 - Math.pow(1 - v, 3);
+}
+
+
+// ======================================================
+// PARTICLE CLASS
+// ======================================================
+
+class Particle {
+
+    constructor() {
+
+        this.x = random(0, W);
+        this.y = random(0, H);
+
+        this.startX = this.x;
+        this.startY = this.y;
+
+        this.heartX = this.x;
+        this.heartY = this.y;
+
+        this.textX = this.x;
+        this.textY = this.y;
+
+        this.size = random(.6, 2.2);
+
+        this.alpha = random(.35, 1);
+
+        this.angle = random(0, Math.PI * 2);
+
+        this.speed = random(.5, 2);
+
+        this.phase = random(0, Math.PI * 2);
+    }
+
+    draw(alpha = 1) {
+
+        // Glow
+        ctx.beginPath();
+
+        ctx.fillStyle =
+            `rgba(0,145,255,${alpha * .12})`;
+
+        ctx.shadowColor = "#008cff";
+        ctx.shadowBlur = 18;
+
+        ctx.arc(
+            this.x,
+            this.y,
+            this.size * 5,
+            0,
+            Math.PI * 2
+        );
+
+        ctx.fill();
+
+
+        // Main particle
+        ctx.beginPath();
+
+        ctx.shadowColor = "#008cff";
+        ctx.shadowBlur = 7;
+
+        ctx.fillStyle =
+            `rgba(65,180,255,${alpha * this.alpha})`;
+
+        ctx.arc(
+            this.x,
+            this.y,
+            this.size,
+            0,
+            Math.PI * 2
+        );
+
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+    }
+}
+
+
+// ======================================================
+// CREATE PARTICLES
+// ======================================================
+
+for (let i = 0; i < COUNT; i++) {
+
+    particles.push(
+        new Particle()
+    );
+}
+
+
+// ======================================================
+// HEART EQUATION
+// ======================================================
+
+function heartPoint(t, scale) {
+
+    const x =
+        16 * Math.pow(Math.sin(t), 3);
+
+    const y =
+        -(
+            13 * Math.cos(t)
+            - 5 * Math.cos(2 * t)
+            - 2 * Math.cos(3 * t)
+            - Math.cos(4 * t)
+        );
+
+    return {
+
+        x: W / 2 + x * scale,
+
+        y: H * .42 + y * scale
+    };
+}
+
+
+// ======================================================
+// CREATE HEART
+// ======================================================
+
+function createHeart() {
+
+    const scale =
+        Math.min(W, H) * .0105;
+
+    for (let i = 0; i < particles.length; i++) {
+
+        const p = particles[i];
+
+        const angle =
+            Math.random() * Math.PI * 2;
+
+        const radius =
+            Math.sqrt(Math.random());
+
+        const point =
+            heartPoint(
+                angle,
+                scale * radius
+            );
+
+        p.heartX = point.x;
+        p.heartY = point.y;
+
+        p.startX =
+            random(W * .05, W * .95);
+
+        p.startY =
+            random(H * .05, H * .75);
+
+        p.x = p.startX;
+        p.y = p.startY;
+
+        p.angle =
+            Math.atan2(
+                p.heartY - H * .42,
+                p.heartX - W / 2
+            ) +
+            random(-.5, .5);
+    }
+}
+
+
+// ======================================================
+// CREATE I LOVE YOU TEXT
+// ======================================================
+
+function createText() {
+
+    const off =
+        document.createElement("canvas");
+
+    const octx =
+        off.getContext("2d");
+
+    off.width = W;
+    off.height = H;
+
+    const fontSize =
+        Math.min(W * .13, 90);
+
+    octx.font =
+        `900 ${fontSize}px Arial`;
+
+    octx.textAlign = "center";
+    octx.textBaseline = "middle";
+
+    octx.fillStyle = "#fff";
+
+    octx.fillText(
+        "I LOVE YOU",
+        W / 2,
+        H * .42
+    );
+
+    const data =
+        octx.getImageData(
+            0,
+            0,
+            W,
+            H
+        );
+
+    const points = [];
+
+
+    // Read text pixels
+    for (let y = 0; y < H; y += 4) {
+
+        for (let x = 0; x < W; x += 4) {
+
+            const index =
+                (y * W + x) * 4;
+
+            if (data.data[index + 3] > 100) {
+
+                points.push({
+                    x: x,
+                    y: y
+                });
+            }
+        }
+    }
+
+
+    // Shuffle
+    for (
+        let i = points.length - 1;
+        i > 0;
+        i--
+    ) {
+
+        const j =
+            Math.floor(
+                Math.random() * (i + 1)
+            );
+
+        [
+            points[i],
+            points[j]
+        ] =
+        [
+            points[j],
+            points[i]
+        ];
+    }
+
+
+    // Assign particles
+    for (let i = 0; i < particles.length; i++) {
+
+        const p = particles[i];
+
+        const point =
+            points[i % points.length];
+
+        p.textX = point.x;
+        p.textY = point.y;
+    }
+}
+
+
+// ======================================================
+// BACKGROUND
+// ======================================================
+
+function background() {
+
+    const gradient =
+        ctx.createRadialGradient(
+            W / 2,
+            H * .42,
+            0,
+            W / 2,
+            H * .42,
+            Math.max(W, H) * .7
+        );
+
+    gradient.addColorStop(
+        0,
+        "rgba(0,20,45,.45)"
+    );
+
+    gradient.addColorStop(
+        .5,
+        "rgba(0,5,15,.75)"
+    );
+
+    gradient.addColorStop(
+        1,
+        "#000"
+    );
+
+    ctx.fillStyle = gradient;
+
+    ctx.fillRect(
+        0,
+        0,
+        W,
+        H
+    );
+}
+
+
+// ======================================================
+// PLATFORM
+// ======================================================
+
+function platform(time) {
+
+    const x = W / 2;
+    const y = H * .63;
+
+    const pulse =
+        1 + Math.sin(time * 4) * .04;
+
+    ctx.save();
+
+    ctx.translate(x, y);
+
+    ctx.scale(
+        pulse,
+        1
+    );
+
+
+    // Big glow
+    const glow =
+        ctx.createRadialGradient(
+            0,
+            0,
+            0,
+            0,
+            0,
+            W * .25
+        );
+
+    glow.addColorStop(
+        0,
+        "rgba(0,150,255,.55)"
+    );
+
+    glow.addColorStop(
+        .4,
+        "rgba(0,100,255,.18)"
+    );
+
+    glow.addColorStop(
+        1,
+        "rgba(0,0,0,0)"
+    );
+
+    ctx.fillStyle = glow;
+
+    ctx.beginPath();
+
+    ctx.ellipse(
+        0,
+        0,
+        W * .25,
+        28,
+        0,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fill();
+
+
+    // Platform
+    const p =
+        ctx.createRadialGradient(
+            0,
+            0,
+            0,
+            0,
+            0,
+            W * .16
+        );
+
+    p.addColorStop(
+        0,
+        "rgba(80,190,255,.9)"
+    );
+
+    p.addColorStop(
+        .3,
+        "rgba(0,130,255,.5)"
+    );
+
+    p.addColorStop(
+        1,
+        "rgba(0,80,255,0)"
+    );
+
+    ctx.fillStyle = p;
+
+    ctx.beginPath();
+
+    ctx.ellipse(
+        0,
+        0,
+        W * .16,
+        10,
+        0,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fill();
+
+    ctx.restore();
+}
+
+
+// ======================================================
+// TEXT GLOW
+// ======================================================
+
+function textGlow(time) {
+
+    const progress =
+        clamp(
+            (time - 7.5) / 1.2,
+            0,
+            1
+        );
+
+    const fontSize =
+        Math.min(W * .13, 90);
+
+    ctx.save();
+
+    ctx.font =
+        `900 ${fontSize}px Arial`;
+
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    ctx.shadowColor =
+        "rgba(0,150,255,.9)";
+
+    ctx.shadowBlur = 35;
+
+    ctx.fillStyle =
+        `rgba(20,150,255,${progress * .15})`;
+
+    ctx.fillText(
+        "I LOVE YOU",
+        W / 2,
+        H * .42
+    );
+
+    ctx.restore();
+}
+
+
+// ======================================================
+// ANIMATION
+// ======================================================
+
+const start =
+    performance.now();
+
+
+function animate(now) {
+
+    const elapsed =
+        (now - start) / 1000;
+
+    const time =
+        elapsed % 12;
+
+
+    ctx.clearRect(
+        0,
+        0,
+        W,
+        H
+    );
+
+    background();
+
+
+    let state;
+
+
+    // ----------------------------
+    // 0 - 3.5 sec
+    // Heart formation
+    // ----------------------------
+
+    if (time < 3.5) {
+
+        state = "forming";
+    }
+
+
+    // ----------------------------
+    // 3.5 - 6 sec
+    // Heart hold
+    // ----------------------------
+
+    else if (time < 6) {
+
+        state = "heart";
+    }
+
+
+    // ----------------------------
+    // 6 - 7.5 sec
+    // Explosion
+    // ----------------------------
+
+    else if (time < 7.5) {
+
+        state = "explode";
+    }
+
+
+    // ----------------------------
+    // 7.5 - 9.3
+    // Text formation
+    // ----------------------------
+
+    else if (time < 9.3) {
+
+        state = "text";
+    }
+
+
+    // ----------------------------
+    // 9.3 - 12
+    // Text hold
+    // ----------------------------
+
+    else {
+
+        state = "textHold";
+    }
+
+
+    // ==================================================
+    // UPDATE PARTICLES
+    // ==================================================
+
+    for (const p of particles) {
+
+
+        if (state === "forming") {
+
+            const progress =
+                clamp(
+                    (time - .5) / 2.7,
+                    0,
+                    1
+                );
+
+            const e =
+                easeOut(progress);
+
+            p.x =
+                p.startX +
+                (p.heartX - p.startX) * e;
+
+            p.y =
+                p.startY +
+                (p.heartY - p.startY) * e;
+        }
+
+
+        else if (state === "heart") {
+
+            const pulse =
+                1 +
+                Math.sin(
+                    time * 4 +
+                    p.phase
+                ) * .018;
+
+            p.x =
+                W / 2 +
+                (p.heartX - W / 2) *
+                pulse;
+
+            p.y =
+                H * .42 +
+                (p.heartY - H * .42) *
+                pulse;
+
+            p.x +=
+                Math.sin(
+                    time * 2 +
+                    p.phase
+                ) * 1.2;
+
+            p.y +=
+                Math.cos(
+                    time * 2.3 +
+                    p.phase
+                ) * 1.2;
+        }
+
+
+        else if (state === "explode") {
+
+            const progress =
+                clamp(
+                    (time - 6) / 1.5,
+                    0,
+                    1
+                );
+
+            const distance =
+                progress *
+                (70 + p.speed * 170);
+
+            p.x =
+                p.heartX +
+                Math.cos(p.angle) *
+                distance;
+
+            p.y =
+                p.heartY +
+                Math.sin(p.angle) *
+                distance +
+                progress *
+                progress *
+                70;
+        }
+
+
+        else if (state === "text") {
+
+            const progress =
+                clamp(
+                    (time - 7.5) / 1.8,
+                    0,
+                    1
+                );
+
+            const e =
+                easeOut(progress);
+
+            p.x =
+                W / 2 +
+                (p.textX - W / 2) * e;
+
+            p.y =
+                H * .42 +
+                (p.textY - H * .42) * e;
+        }
+
+
+        else if (state === "textHold") {
+
+            p.x =
+                p.textX +
+                Math.sin(
+                    time * 2 +
+                    p.phase
+                ) * 1.3;
+
+            p.y =
+                p.textY +
+                Math.cos(
+                    time * 2.2 +
+                    p.phase
+                ) * 1.3;
+        }
+
+
+        // Opacity
+        let opacity = 1;
+
+
+        if (state === "explode") {
+
+            opacity =
+                1 -
+                clamp(
+                    (time - 6) / 1.5,
+                    0,
+                    1
+                );
+        }
+
+
+        if (state === "text") {
+
+            opacity =
+                clamp(
+                    (time - 7.5) / 1.3,
+                    0,
+                    1
+                );
+        }
+
+
+        p.draw(opacity);
+    }
+
+
+    // Platform
+    platform(time);
+
+
+    // Text glow
+    if (
+        state === "text" ||
+        state === "textHold"
+    ) {
+
+        textGlow(time);
+    }
+
+
+    requestAnimationFrame(animate);
+}
+
+
+// ======================================================
+// START
+// ======================================================
+
+resize();
+
+requestAnimationFrame(animate);
+
+</script>
+
+</body>
+</html>
